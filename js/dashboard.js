@@ -462,14 +462,14 @@ function setWindowPreset(days) {
 }
 
 function setActivePreset(days) {
-    document.querySelectorAll('.btn-zoom-preset').forEach(btn => {
+    document.querySelectorAll('.preset-btn').forEach(btn => {
         btn.classList.remove('active');
     });
     if (days === 'all') {
         const allBtn = document.getElementById('btnPresetAll');
         if (allBtn) allBtn.classList.add('active');
     } else {
-        const matchingBtn = Array.from(document.querySelectorAll('.btn-zoom-preset')).find(
+        const matchingBtn = Array.from(document.querySelectorAll('.preset-btn')).find(
             b => b.textContent.includes(String(days))
         );
         if (matchingBtn) matchingBtn.classList.add('active');
@@ -477,7 +477,7 @@ function setActivePreset(days) {
 }
 
 function clearActivePreset() {
-    document.querySelectorAll('.btn-zoom-preset').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
 }
 
 // ===== Supabase Cloud Persistence =====
