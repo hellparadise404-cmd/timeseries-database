@@ -5,32 +5,58 @@ const state = {
     errors: [],
     aggregated: [],
     chart: null,
-    currentUser: null
+    currentUser: null,
+    activeTab: 'upload'
 };
 
 const TS_REGEX = /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2})?$/;
 
 // ===== Init =====
 document.addEventListener('DOMContentLoaded', async () => {
+    startLiveClock();
     state.currentUser = await requireAuth();
     if (!state.currentUser) return;
-    document.getElementById('userEmail').textContent = state.currentUser.email;
+    
+    const emailEl = document.getElementById('userEmail');
+    if (emailEl) emailEl.textContent = state.currentUser.email;
+    
     setupDropzone();
     loadHistory();
 });
 
-// ===== Section Navigation =====
-function showSection(name) {
+// ===== Live UTC Clock =====
+function startLiveClock() {
+    function updateClock() {
+        const now = new Date();
+        const p = n => String(n).padStart(2, '0');
+        const str = `${p(now.getUTCHours())}:${p(now.getUTCMinutes())}:${p(now.getUTCSeconds())} UTC`;
+        const clockEl = document.getElementById('liveClock');
+        if (clockEl) clockEl.textContent = str;
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+}
+
+// ===== Game Menu Navigation =====
+function openModule(tabName) {
+    document.getElementById('gameMenuHub').classList.add('hidden');
+    document.getElementById('activeModuleView').classList.remove('hidden');
+    switchTab(tabName);
+}
+
+function returnToMenu() {
+    document.getElementById('activeModuleView').classList.add('hidden');
+    document.getElementById('gameMenuHub').classList.remove('hidden');
+}
+
+function switchTab(name) {
+    state.activeTab = name;
     ['upload', 'results', 'history'].forEach(s => {
-        const el = document.getElementById('section-' + s);
-        if (el) el.classList.toggle('hidden', s !== name);
+        const tabContent = document.getElementById('tab-' + s);
+        const pill = document.getElementById('pill-' + s);
+        if (tabContent) tabContent.classList.toggle('hidden', s !== name);
+        if (pill) pill.classList.toggle('active', s === name);
     });
-    document.querySelectorAll('.sidebar nav a').forEach(a => {
-        a.classList.toggle('active', a.getAttribute('href') === '#' + name);
-    });
-    const titles = { upload: 'Upload CSV', results: 'Results & Visualization', history: 'Upload History' };
-    const pageTitle = document.getElementById('pageTitle');
-    if (pageTitle) pageTitle.textContent = titles[name] || '';
     if (name === 'history') loadHistory();
 }
 
@@ -38,6 +64,7 @@ function showSection(name) {
 function setupDropzone() {
     const dz = document.getElementById('dropzone');
     const input = document.getElementById('fileInput');
+    if (!dz || !input) return;
 
     dz.addEventListener('click', () => input.click());
     dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-active'); });
@@ -57,31 +84,30 @@ function setupDropzone() {
 function handleFile(file) {
     if (!file) return;
     if (!file.name.toLowerCase().endsWith('.csv')) {
-        return showToast('Only .csv files are accepted.');
+        return showToast('⚠️ Only .csv files are accepted.');
     }
     const reader = new FileReader();
     reader.onload = e => {
         stageCSV(file.name, file.size, e.target.result);
-        showToast('Loaded: ' + file.name);
+        showToast('✓ Ingested: ' + file.name);
     };
     reader.readAsText(file);
 }
 
-// ===== CSV Staging (parse + preview) =====
+// ===== CSV Staging =====
 function stageCSV(fileName, fileSize, raw) {
     try {
         const { headers, rows } = parseCSV(raw);
         state.staged = { fileName, fileSize, headers, rows };
 
-        // Toggle UI
         document.getElementById('dropzone').classList.add('hidden');
         document.getElementById('fileInfo').classList.remove('hidden');
         document.getElementById('fileName').textContent = fileName;
         document.getElementById('fileMeta').textContent =
-            (fileSize / 1024).toFixed(1) + ' KB • ' + rows.length + ' rows';
+            (fileSize / 1024).toFixed(1) + ' KB • ' + rows.length + ' RAW ROWS DETECTED';
         document.getElementById('mappingSection').classList.remove('hidden');
 
-        // Preview table (first 5 rows)
+        // Preview table
         document.getElementById('previewHead').innerHTML =
             '<tr>' + headers.map(h => '<th>' + h + '</th>').join('') + '</tr>';
         document.getElementById('previewBody').innerHTML =
@@ -89,17 +115,17 @@ function stageCSV(fileName, fileSize, raw) {
                 '<tr>' + headers.map((_, i) => '<td>' + (r.cells[i] || '') + '</td>').join('') + '</tr>'
             ).join('');
 
-        // Auto-detect columns
+        // Smart column mapping
         const tsSel = document.getElementById('tsColumn');
         const valSel = document.getElementById('valColumn');
-        tsSel.innerHTML = '<option value="">-- Timestamp --</option>';
-        valSel.innerHTML = '<option value="">-- Value --</option>';
+        tsSel.innerHTML = '<option value="">-- Select Timestamp --</option>';
+        valSel.innerHTML = '<option value="">-- Select Sensor Metric --</option>';
 
         let foundTs = false, foundVal = false;
         headers.forEach((h, i) => {
             const low = h.toLowerCase();
             const isTs = !foundTs && (low.includes('time') || low.includes('date') || low === 'ts');
-            const isVal = !foundVal && (low.includes('val') || low.includes('temp') || low.includes('metric'));
+            const isVal = !foundVal && (low.includes('val') || low.includes('temp') || low.includes('metric') || low.includes('vibe'));
             if (isTs) foundTs = true;
             if (isVal) foundVal = true;
             tsSel.add(new Option(h, i, false, isTs));
@@ -107,7 +133,7 @@ function stageCSV(fileName, fileSize, raw) {
         });
         onMappingChange();
     } catch (err) {
-        showToast(err.message);
+        showToast('Parse error: ' + err.message);
     }
 }
 
@@ -135,8 +161,8 @@ function onMappingChange() {
         return;
     }
     if (tsIdx === valIdx) {
-        msgBox.className = 'validation-msg error';
-        msgBox.textContent = 'Timestamp and Value must be different columns.';
+        msgBox.style.cssText = 'background:rgba(239,68,68,0.2);color:#fca5a5;padding:12px;border-radius:10px;margin-bottom:16px;border:1px solid rgba(239,68,68,0.4);font-size:13px';
+        msgBox.textContent = '❌ Timestamp and Value columns must be distinct.';
         msgBox.classList.remove('hidden');
         document.getElementById('processBtn').disabled = true;
         return;
@@ -144,12 +170,11 @@ function onMappingChange() {
 
     const result = validateRecords(state.staged.rows, +tsIdx, +valIdx);
     if (!result.valid.length) {
-        msgBox.className = 'validation-msg error';
-        msgBox.textContent = '0 valid records (' + result.errors.length + ' skipped).';
+        msgBox.style.cssText = 'background:rgba(239,68,68,0.2);color:#fca5a5;padding:12px;border-radius:10px;margin-bottom:16px;border:1px solid rgba(239,68,68,0.4);font-size:13px';
+        msgBox.textContent = '❌ 0 valid points found (' + result.errors.length + ' skipped).';
     } else {
-        const type = result.errors.length ? 'warning' : 'success';
-        msgBox.className = 'validation-msg ' + type;
-        msgBox.textContent = result.valid.length + ' valid • ' + result.errors.length + ' skipped';
+        msgBox.style.cssText = 'background:rgba(52,211,153,0.15);color:#6ee7b7;padding:12px;border-radius:10px;margin-bottom:16px;border:1px solid rgba(52,211,153,0.3);font-size:13px';
+        msgBox.textContent = `✓ Ingestion verified: ${result.valid.length} valid points (${result.errors.length} skipped outliers).`;
     }
     msgBox.classList.remove('hidden');
     document.getElementById('processBtn').disabled = !result.valid.length;
@@ -190,9 +215,9 @@ function processData() {
     state.errors = result.errors;
 
     updateResults();
-    showSection('results');
+    switchTab('results');
     saveToSupabase();
-    showToast('Processed ' + state.records.length + ' records');
+    showToast(`✓ Telemetry Loaded: ${state.records.length} points`);
 }
 
 // ===== Aggregation =====
@@ -237,76 +262,110 @@ function updateResults() {
     const agg = aggregateRecords(state.records, interval);
     state.aggregated = agg;
 
-    // Update stats cards
     const stats = calcStats(state.records);
-    document.getElementById('statTotal').textContent = stats.total;
-    document.getElementById('statSkipped').textContent = state.errors.length + ' skipped';
+    document.getElementById('statTotal').textContent = stats.total.toLocaleString();
+    document.getElementById('statSkipped').textContent = state.errors.length + ' skipped outliers';
     document.getElementById('statAvg').textContent = stats.avg.toFixed(2);
     document.getElementById('statMin').textContent = stats.min.toFixed(2);
     document.getElementById('statMax').textContent = stats.max.toFixed(2);
 
-    // Render chart
     renderChart(agg);
 
-    // Render table
     document.getElementById('resultBody').innerHTML = agg.map(r =>
-        '<tr><td>' + r.id + '</td><td><strong>' + r.bucket + '</strong></td><td>' +
-        r.avg.toFixed(2) + '</td><td>' + r.min.toFixed(2) + '</td><td>' +
-        r.max.toFixed(2) + '</td><td>' + r.count + '</td></tr>'
+        '<tr>' +
+        '<td><span style="font-family:\'JetBrains Mono\',monospace;color:var(--accent-amber)">#' + r.id + '</span></td>' +
+        '<td><strong style="color:var(--text-white)">' + r.bucket + '</strong></td>' +
+        '<td><span style="color:var(--accent-cyan);font-weight:700">' + r.avg.toFixed(2) + '</span></td>' +
+        '<td>' + r.min.toFixed(2) + '</td>' +
+        '<td>' + r.max.toFixed(2) + '</td>' +
+        '<td><span class="brand-tag" style="padding:2px 8px">' + r.count + ' pts</span></td>' +
+        '</tr>'
     ).join('');
 }
 
-// ===== Chart =====
+// ===== Glowing Chart.js Setup =====
 function renderChart(agg) {
     if (state.chart) state.chart.destroy();
-    state.chart = new Chart(document.getElementById('chart'), {
+    const ctx = document.getElementById('chart').getContext('2d');
+    
+    // Gradient fill under the wave
+    const gradient = ctx.createLinearGradient(0, 0, 0, 320);
+    gradient.addColorStop(0, 'rgba(56, 189, 248, 0.35)');
+    gradient.addColorStop(1, 'rgba(56, 189, 248, 0.0)');
+
+    state.chart = new Chart(ctx, {
         type: 'line',
         data: {
             labels: agg.map(r => r.bucket),
             datasets: [
                 {
-                    label: 'Average',
+                    label: 'Downsampled Average',
                     data: agg.map(r => r.avg),
-                    borderColor: '#2d3a8c',
-                    backgroundColor: 'rgba(45,58,140,0.08)',
+                    borderColor: '#38bdf8',
+                    backgroundColor: gradient,
                     fill: true,
-                    borderWidth: 2.5,
-                    tension: 0.25,
-                    pointBackgroundColor: '#2d3a8c'
+                    borderWidth: 3,
+                    tension: 0.3,
+                    pointBackgroundColor: '#38bdf8',
+                    pointBorderColor: '#ffffff',
+                    pointHoverRadius: 6,
+                    pointRadius: 4
                 },
                 {
-                    label: 'Max',
+                    label: 'Maximum Bound',
                     data: agg.map(r => r.max),
-                    borderColor: '#22c55e',
-                    borderDash: [5, 5],
-                    borderWidth: 1.5,
-                    tension: 0.2,
-                    pointRadius: 2
+                    borderColor: '#fbbf24',
+                    borderDash: [6, 4],
+                    borderWidth: 2,
+                    tension: 0.25,
+                    pointRadius: 2,
+                    fill: false
                 },
                 {
-                    label: 'Min',
+                    label: 'Minimum Bound',
                     data: agg.map(r => r.min),
                     borderColor: '#94a3b8',
-                    borderDash: [5, 5],
-                    borderWidth: 1.5,
-                    tension: 0.2,
-                    pointRadius: 2
+                    borderDash: [6, 4],
+                    borderWidth: 2,
+                    tension: 0.25,
+                    pointRadius: 2,
+                    fill: false
                 }
             ]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { position: 'top' } },
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: { color: '#e2e8f0', font: { family: 'Plus Jakarta Sans', weight: '600' } }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(15, 26, 48, 0.95)',
+                    titleColor: '#fbbf24',
+                    bodyColor: '#ffffff',
+                    borderColor: 'rgba(255, 255, 255, 0.2)',
+                    borderWidth: 1,
+                    padding: 12,
+                    cornerRadius: 10
+                }
+            },
             scales: {
-                x: { grid: { display: false } },
-                y: { grid: { color: '#e5e7eb' } }
+                x: {
+                    ticks: { color: '#94a3b8', font: { family: 'JetBrains Mono', size: 11 } },
+                    grid: { display: false }
+                },
+                y: {
+                    ticks: { color: '#94a3b8', font: { family: 'JetBrains Mono', size: 11 } },
+                    grid: { color: 'rgba(255, 255, 255, 0.08)' }
+                }
             }
         }
     });
 }
 
-// ===== Supabase: Save =====
+// ===== Supabase Cloud Persistence =====
 async function saveToSupabase() {
     if (!state.currentUser || !state.records.length) return;
     const metric = document.getElementById('metricName').value || 'value';
@@ -325,14 +384,14 @@ async function saveToSupabase() {
     });
 
     if (error) {
-        console.error('Save error:', error);
-        showToast('Failed to save to database.');
+        console.error('Supabase error:', error);
+        showToast('⚠️ Cloud sync error.');
     } else {
-        showToast('Saved to database!');
+        showToast('✓ Saved to Supabase Cloud Archive');
     }
 }
 
-// ===== Supabase: Load History =====
+// ===== Supabase Load History =====
 async function loadHistory() {
     const tbody = document.getElementById('historyBody');
     const countEl = document.getElementById('historyCount');
@@ -343,33 +402,32 @@ async function loadHistory() {
         .select('*')
         .order('created_at', { ascending: false });
 
-    if (countEl) countEl.textContent = (data ? data.length : 0) + ' dataset(s)';
+    if (countEl) countEl.textContent = (data ? data.length : 0) + ' MISSIONS';
 
     if (error || !data || !data.length) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:40px;">No datasets yet. Upload your first CSV!</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-dim);padding:44px">No archived missions found. Upload your first dataset!</td></tr>';
         return;
     }
 
     tbody.innerHTML = data.map(d =>
         '<tr>' +
-        '<td><strong>' + d.file_name + '</strong></td>' +
-        '<td>' + (d.metric_name || '—') + '</td>' +
-        '<td>' + d.total_records + '</td>' +
-        '<td style="font-size:12px">' + (d.start_time || '—') + ' → ' + (d.end_time || '—') + '</td>' +
-        '<td style="font-size:12px">' + new Date(d.created_at).toLocaleString() + '</td>' +
+        '<td><strong style="color:var(--text-white)">' + d.file_name + '</strong></td>' +
+        '<td><span class="brand-tag">' + (d.metric_name || 'value') + '</span></td>' +
+        '<td><span style="font-family:\'JetBrains Mono\',monospace;color:var(--accent-amber)">' + d.total_records.toLocaleString() + '</span></td>' +
+        '<td style="font-family:\'JetBrains Mono\',monospace;font-size:12px;color:var(--text-dim)">' + (d.start_time || '—') + ' → ' + (d.end_time || '—') + '</td>' +
+        '<td style="font-size:12px;color:var(--text-dim)">' + new Date(d.created_at).toLocaleString() + '</td>' +
         '<td>' +
-            '<button class="btn-view" onclick="viewDataset(\'' + d.id + '\')">View</button> ' +
-            '<button class="btn-delete" onclick="deleteDataset(\'' + d.id + '\')">Delete</button>' +
+            '<button class="btn-glass-primary" style="padding:6px 14px;font-size:12px;margin-right:8px" onclick="viewDataset(\'' + d.id + '\')">Load</button>' +
+            '<button class="btn-glass-logout" style="padding:6px 14px;font-size:12px" onclick="deleteDataset(\'' + d.id + '\')">Delete</button>' +
         '</td></tr>'
     ).join('');
 }
 
-// ===== Supabase: View Dataset =====
+// ===== View & Restore Dataset =====
 async function viewDataset(id) {
     const { data, error } = await window.supabaseClient.from('datasets').select('*').eq('id', id).single();
-    if (error || !data) return showToast('Could not load dataset.');
+    if (error || !data) return showToast('⚠️ Could not restore mission.');
 
-    // Reconstruct records from stored raw_data
     state.records = (data.raw_data || []).map((r, i) => ({
         record_id: i + 1,
         timestamp: new Date(r.ts.replace(' ', 'T')),
@@ -379,22 +437,22 @@ async function viewDataset(id) {
     state.staged = { fileName: data.file_name };
 
     updateResults();
-    showSection('results');
-    showToast('Loaded: ' + data.file_name);
+    switchTab('results');
+    showToast('✓ Restored Archive: ' + data.file_name);
 }
 
-// ===== Supabase: Delete Dataset =====
+// ===== Delete Dataset =====
 async function deleteDataset(id) {
-    if (!confirm('Delete this dataset permanently?')) return;
+    if (!confirm('Permanently purge this mission from Supabase?')) return;
     const { error } = await window.supabaseClient.from('datasets').delete().eq('id', id);
-    if (error) return showToast('Delete failed.');
-    showToast('Deleted.');
+    if (error) return showToast('⚠️ Delete failed.');
+    showToast('✓ Mission purged.');
     loadHistory();
 }
 
 // ===== Export CSV =====
 function exportCSV() {
-    if (!state.aggregated.length) return showToast('No data to export.');
+    if (!state.aggregated.length) return showToast('⚠️ No data to export.');
     const csv = [
         'id,bucket_start,average,min,max,count',
         ...state.aggregated.map(r =>
@@ -404,9 +462,9 @@ function exportCSV() {
     const blob = new Blob([csv], { type: 'text/csv' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'aggregated_results.csv';
+    a.download = 'telemetry_aggregated.csv';
     a.click();
-    showToast('CSV exported.');
+    showToast('✓ Telemetry CSV exported.');
 }
 
 // ===== Reset Upload =====
@@ -418,7 +476,7 @@ function resetUpload() {
     document.getElementById('dropzone').classList.remove('hidden');
     document.getElementById('fileInfo').classList.add('hidden');
     document.getElementById('mappingSection').classList.add('hidden');
-    showSection('upload');
+    switchTab('upload');
 }
 
 // ===== Utilities =====
@@ -435,5 +493,5 @@ function showToast(msg) {
     t.textContent = msg;
     t.style.display = 'block';
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => t.style.display = 'none', 3000);
+    toastTimer = setTimeout(() => t.style.display = 'none', 3500);
 }
