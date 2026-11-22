@@ -3,42 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enlist — Time-Series DB</title>
+    <title>Create Account — Time-Series Platform</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
-<div class="auth-wrapper">
-    <div class="liquid-glass-card">
-        <div class="liquid-brand">
-            <div class="liquid-brand-icon">⚡</div>
-            <div class="liquid-brand-name">TIMESERIES // HUD</div>
-            <span class="brand-tag">OFFSHORE TELEMETRY GATEWAY</span>
+<div class="auth-wrap">
+    <div class="auth-card">
+        <div class="auth-header">
+            <span class="category-tag">Time-Series Platform</span>
+            <h1>Create Account</h1>
         </div>
 
-        <h1>Operator Registration</h1>
-
-        <div id="errorMsg" class="glass-error-msg"></div>
+        <div id="errorMsg" class="error-banner"></div>
 
         <form onsubmit="handleSignup(event)">
-            <div class="auth-form-group">
-                <label for="email">Callsign / Operator Email*</label>
-                <input type="email" id="email" placeholder="operator@telemetry.io" required autocomplete="email">
+            <div class="auth-group">
+                <label for="email">Email address</label>
+                <input type="email" id="email" placeholder="name@company.com" required autocomplete="email">
             </div>
-            <div class="auth-form-group">
-                <label for="password">Create Security Key (Min 6 chars)*</label>
+            <div class="auth-group">
+                <label for="password">Password (Minimum 6 characters)</label>
                 <input type="password" id="password" placeholder="••••••••" minlength="6" required autocomplete="new-password">
             </div>
-            <div class="auth-form-group">
-                <label for="confirmPassword">Confirm Security Key*</label>
+            <div class="auth-group">
+                <label for="confirmPassword">Confirm Password</label>
                 <input type="password" id="confirmPassword" placeholder="••••••••" minlength="6" required autocomplete="new-password">
             </div>
-            <button type="submit" class="btn-liquid-submit" id="submitBtn">Enlist & Access HUD →</button>
+            <button type="submit" class="btn-auth-submit" id="submitBtn">Create Account</button>
         </form>
 
-        <div class="liquid-footer">
-            Existing operator? <a href="index.html">Initialize Session (Log In)</a>
+        <div class="auth-footer">
+            Already registered? <a href="index.html">Sign In</a>
         </div>
     </div>
 </div>
@@ -57,13 +54,13 @@
         const confirm = document.getElementById('confirmPassword').value;
 
         if (password !== confirm) {
-            errBox.textContent = 'Security keys do not match.';
+            errBox.textContent = 'Passwords do not match.';
             errBox.style.display = 'block';
             return;
         }
 
         btn.disabled = true;
-        btn.textContent = 'Provisioning Clearance...';
+        btn.textContent = 'Creating account...';
         errBox.style.display = 'none';
 
         try {
@@ -76,7 +73,7 @@
             errBox.textContent = err.message || 'Registration failed.';
             errBox.style.display = 'block';
             btn.disabled = false;
-            btn.textContent = 'Enlist & Access HUD →';
+            btn.textContent = 'Create Account';
         }
     }
 </script>
