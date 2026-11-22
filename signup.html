@@ -3,39 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create Account — Time-Series Platform</title>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <title>Create Account — TimeSeries DB</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
-<div class="auth-wrap">
+<div class="auth-page">
     <div class="auth-card">
         <div class="auth-header">
-            <span class="category-tag">Time-Series Platform</span>
             <h1>Create Account</h1>
+            <p>Set up an account to store and analyze datasets</p>
         </div>
 
-        <div id="errorMsg" class="error-banner"></div>
+        <div id="errorMsg" class="validation-box error hidden"></div>
 
-        <form onsubmit="handleSignup(event)">
-            <div class="auth-group">
-                <label for="email">Email address</label>
-                <input type="email" id="email" placeholder="name@company.com" required autocomplete="email">
+        <form class="auth-form" onsubmit="handleSignup(event)">
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" id="email" placeholder="you@example.com" required autocomplete="email">
             </div>
-            <div class="auth-group">
+            <div class="form-group">
                 <label for="password">Password (Minimum 6 characters)</label>
                 <input type="password" id="password" placeholder="••••••••" minlength="6" required autocomplete="new-password">
             </div>
-            <div class="auth-group">
+            <div class="form-group">
                 <label for="confirmPassword">Confirm Password</label>
                 <input type="password" id="confirmPassword" placeholder="••••••••" minlength="6" required autocomplete="new-password">
             </div>
-            <button type="submit" class="btn-auth-submit" id="submitBtn">Create Account</button>
+            <button type="submit" class="btn-auth" id="submitBtn">Create Account</button>
         </form>
 
         <div class="auth-footer">
-            Already registered? <a href="index.html">Sign In</a>
+            Already have an account? <a href="index.html">Sign In</a>
         </div>
     </div>
 </div>
@@ -55,13 +55,13 @@
 
         if (password !== confirm) {
             errBox.textContent = 'Passwords do not match.';
-            errBox.style.display = 'block';
+            errBox.classList.remove('hidden');
             return;
         }
 
         btn.disabled = true;
         btn.textContent = 'Creating account...';
-        errBox.style.display = 'none';
+        errBox.classList.add('hidden');
 
         try {
             await signupWithEmail(
@@ -71,7 +71,7 @@
             window.location.href = 'dashboard.html';
         } catch (err) {
             errBox.textContent = err.message || 'Registration failed.';
-            errBox.style.display = 'block';
+            errBox.classList.remove('hidden');
             btn.disabled = false;
             btn.textContent = 'Create Account';
         }
