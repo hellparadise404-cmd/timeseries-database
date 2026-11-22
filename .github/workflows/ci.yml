@@ -1,0 +1,46 @@
+name: CI & Automatic Build Validation
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build & Code Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Validate JavaScript Syntax
+        run: |
+          echo "Checking JavaScript files for syntax errors..."
+          node --check js/supabase-config.js
+          node --check js/auth.js
+          node --check js/dashboard.js
+          echo "All JavaScript files passed syntax verification."
+
+      - name: Verify Web Assets & Schema
+        run: |
+          echo "Verifying application files exist..."
+          test -f index.html
+          test -f signup.html
+          test -f dashboard.html
+          test -f css/style.css
+          test -f css/background.png
+          test -f supabase_schema.sql
+          test -f vercel.json
+          echo "All application files present and verified."
+
+      - name: Build Summary
+        run: |
+          echo "Build and validation completed successfully for commit ${{ github.sha }}!"
