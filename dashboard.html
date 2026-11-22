@@ -6,7 +6,10 @@
     <title>Time-Series Platform</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
+    <!-- Chart.js + Zoom plugin + Hammer.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
 </head>
 <body>
 
@@ -84,7 +87,7 @@
                             <span class="step-num">02</span>
                         </div>
                         <h3>Aggregation & Analytics</h3>
-                        <p>Perform 15-minute, 30-minute, and 1-hour time bucketing with trend visualization and summary statistics.</p>
+                        <p>Perform 15-minute, 30-minute, and 1-hour time bucketing with interactive zoomable line charts and statistics.</p>
                     </div>
                     <div class="card-footer-action">
                         <span>Open Analytics</span>
@@ -235,10 +238,13 @@
                     </div>
                 </div>
 
-                <!-- Clean Chart Panel -->
+                <!-- Clean Zoomable Chart Panel -->
                 <div class="glass-box">
                     <div class="box-header">
-                        <h2>Aggregated Time-Series Chart</h2>
+                        <div>
+                            <h2>Aggregated Time-Series Chart</h2>
+                            <div class="zoom-hint">Scroll mouse wheel to zoom in/out • Click and drag left/right to pan</div>
+                        </div>
                         <div class="header-control">
                             <label>Interval:</label>
                             <select id="intervalSelect" onchange="updateResults()">
@@ -248,6 +254,24 @@
                             </select>
                         </div>
                     </div>
+
+                    <!-- Zoom Controls Bar -->
+                    <div class="zoom-toolbar">
+                        <div class="zoom-group">
+                            <span class="zoom-label">Quick View:</span>
+                            <button class="btn-zoom-preset" onclick="setWindowPreset(7)">7 Days</button>
+                            <button class="btn-zoom-preset" onclick="setWindowPreset(15)">15 Days</button>
+                            <button class="btn-zoom-preset" onclick="setWindowPreset(30)">1 Month</button>
+                            <button class="btn-zoom-preset" onclick="setWindowPreset(90)">3 Months</button>
+                            <button class="btn-zoom-preset active" id="btnPresetAll" onclick="setWindowPreset('all')">All</button>
+                        </div>
+                        <div class="zoom-group">
+                            <button class="btn-zoom-action" onclick="zoomIn()" title="Zoom In">+</button>
+                            <button class="btn-zoom-action" onclick="zoomOut()" title="Zoom Out">−</button>
+                            <button class="btn-zoom-action" onclick="resetZoom()" title="Reset Zoom">Reset</button>
+                        </div>
+                    </div>
+
                     <div class="chart-canvas-wrap">
                         <canvas id="chart"></canvas>
                     </div>
