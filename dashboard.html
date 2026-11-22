@@ -3,99 +3,114 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mission Control — Time-Series DB</title>
+    <title>Time-Series Platform</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
-<div class="hud-app">
+<div class="platform-app">
 
-    <!-- Top HUD Navigation Bar -->
-    <header class="hud-header">
-        <div class="brand-hud" onclick="returnToMenu()">
-            <div class="brand-icon-box">📈</div>
+    <!-- Top Navigation Header -->
+    <header class="app-header">
+        <div class="brand-container" onclick="returnToMenu()">
+            <div class="brand-mark">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                </svg>
+            </div>
             <div>
-                <div class="brand-title">
-                    TIMESERIES // HUD
-                    <span class="brand-tag">PST_AD_159</span>
+                <div class="brand-text">
+                    Time-Series Platform
+                    <span class="version-tag">PST_AD_159</span>
                 </div>
             </div>
         </div>
 
-        <div class="hud-right">
-            <div class="hud-clock">
-                <span class="online-pulse"></span>
-                <span id="liveClock">00:00:00 UTC</span>
-            </div>
-            <div class="user-badge" id="userEmail">callsign@loading</div>
-            <button class="btn-glass-logout" onclick="logout()">↩ Exit</button>
+        <div class="header-actions">
+            <div class="user-pill" id="userEmail">Loading...</div>
+            <button class="btn-glass-danger" onclick="logout()">Sign Out</button>
         </div>
     </header>
 
-    <!-- Main View Container -->
-    <main class="hud-body">
+    <!-- Main Container -->
+    <main class="app-content">
 
         <!-- ========================================================
-             SCREEN 1: GAME MENU / MISSION SELECT (DEFAULT)
+             1. SELECTION MENU (DEFAULT VIEW)
         ======================================================== -->
-        <section id="gameMenuHub" class="game-hub">
-            <div class="hub-hero">
-                <div class="hub-badge">SYSTEMS ONLINE // SELECT DESTINATION</div>
-                <h1>Offshore Telemetry Command</h1>
-                <p>Select an operational module below to ingest sensor feeds, render downsampled time-series waves, or review persistent cloud mission archives.</p>
+        <section id="menuHub" class="menu-hub">
+            <div class="menu-intro">
+                <span class="category-tag">Navigation Menu</span>
+                <h1>Time-Series Data Viewer</h1>
+                <p>Select a destination to import datasets, inspect downsampled metrics, or view stored records.</p>
             </div>
 
-            <div class="game-menu-grid">
-                <!-- Slot 1: Upload -->
-                <div class="game-card" onclick="openModule('upload')">
-                    <div>
-                        <div class="card-top">
-                            <div class="card-icon-halo">📤</div>
-                            <span class="card-slot-number">MOD // 01</span>
+            <div class="menu-grid">
+                <!-- Card 1: Ingestion -->
+                <div class="menu-card" onclick="openModule('upload')">
+                    <div class="card-inner">
+                        <div class="card-meta">
+                            <div class="card-icon">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="17 8 12 3 7 8"></polyline>
+                                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                                </svg>
+                            </div>
+                            <span class="step-num">01</span>
                         </div>
-                        <div class="card-content">
-                            <h3>CSV Ingestion Hub</h3>
-                            <p>Upload raw timestamp-indexed measurements. Features auto-mapping heuristics, timestamp verification, and outlier sanitization.</p>
-                        </div>
+                        <h3>CSV Ingestion</h3>
+                        <p>Upload time-series CSV files with automatic column detection, timestamp parsing, and data validation.</p>
                     </div>
-                    <div class="card-action-bar">
-                        <span class="card-action-label">INITIALIZE UPLOAD <span class="action-arrow">→</span></span>
-                    </div>
-                </div>
-
-                <!-- Slot 2: Analytics & Chart -->
-                <div class="game-card" onclick="openModule('results')">
-                    <div>
-                        <div class="card-top">
-                            <div class="card-icon-halo">📊</div>
-                            <span class="card-slot-number">MOD // 02</span>
-                        </div>
-                        <div class="card-content">
-                            <h3>Telemetry Visualizer</h3>
-                            <p>Dynamic 15m, 30m, and 1h bucketing algorithms. Interactive wave charts with live peak bounds, min/max bands, and CSV export.</p>
-                        </div>
-                    </div>
-                    <div class="card-action-bar">
-                        <span class="card-action-label">LAUNCH HUD CHART <span class="action-arrow">→</span></span>
+                    <div class="card-footer-action">
+                        <span>Open Ingestion</span>
+                        <span class="chevron">→</span>
                     </div>
                 </div>
 
-                <!-- Slot 3: Persistent History -->
-                <div class="game-card" onclick="openModule('history')">
-                    <div>
-                        <div class="card-top">
-                            <div class="card-icon-halo">🗄️</div>
-                            <span class="card-slot-number">MOD // 03</span>
+                <!-- Card 2: Analytics & Chart -->
+                <div class="menu-card" onclick="openModule('results')">
+                    <div class="card-inner">
+                        <div class="card-meta">
+                            <div class="card-icon">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="18" y1="20" x2="18" y2="10"></line>
+                                    <line x1="12" y1="20" x2="12" y2="4"></line>
+                                    <line x1="6" y1="20" x2="6" y2="14"></line>
+                                </svg>
+                            </div>
+                            <span class="step-num">02</span>
                         </div>
-                        <div class="card-content">
-                            <h3>Supabase Archives</h3>
-                            <p>Permanent cloud repository with Row-Level Security. Query past mission logs, review previous uploads, or restore historical sessions.</p>
-                        </div>
+                        <h3>Aggregation & Analytics</h3>
+                        <p>Perform 15-minute, 30-minute, and 1-hour time bucketing with trend visualization and summary statistics.</p>
                     </div>
-                    <div class="card-action-bar">
-                        <span class="card-action-label">ACCESS ARCHIVES <span class="action-arrow">→</span></span>
+                    <div class="card-footer-action">
+                        <span>Open Analytics</span>
+                        <span class="chevron">→</span>
+                    </div>
+                </div>
+
+                <!-- Card 3: History -->
+                <div class="menu-card" onclick="openModule('history')">
+                    <div class="card-inner">
+                        <div class="card-meta">
+                            <div class="card-icon">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                                    <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+                                    <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+                                </svg>
+                            </div>
+                            <span class="step-num">03</span>
+                        </div>
+                        <h3>Dataset History</h3>
+                        <p>Access persistently stored datasets from Supabase with user isolation and quick reload capabilities.</p>
+                    </div>
+                    <div class="card-footer-action">
+                        <span>Open History</span>
+                        <span class="chevron">→</span>
                     </div>
                 </div>
             </div>
@@ -103,76 +118,84 @@
 
 
         <!-- ========================================================
-             SCREEN 2: ACTIVE MODULE VIEWS (WHEN A CARD IS OPENED)
+             2. ACTIVE MODULE CONTAINER
         ======================================================== -->
-        <section id="activeModuleView" class="module-view hidden">
-            
-            <!-- Module Top HUD Bar (Breadcrumbs & Navigation) -->
-            <div class="module-nav-bar">
-                <button class="btn-back-menu" onclick="returnToMenu()">
-                    <span>←</span> RETURN TO MENU
+        <section id="activeModuleView" class="module-container hidden">
+
+            <!-- Sub Navigation Bar -->
+            <div class="sub-nav">
+                <button class="btn-back" onclick="returnToMenu()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="19" y1="12" x2="5" y2="12"></line>
+                        <polyline points="12 19 5 12 12 5"></polyline>
+                    </svg>
+                    Main Menu
                 </button>
-                <div class="module-pill-tabs">
-                    <button class="pill-tab" id="pill-upload" onclick="switchTab('upload')">📤 01. Ingestion</button>
-                    <button class="pill-tab" id="pill-results" onclick="switchTab('results')">📊 02. Visualizer</button>
-                    <button class="pill-tab" id="pill-history" onclick="switchTab('history')">🗄️ 03. Archives</button>
+                <div class="tab-pills">
+                    <button class="tab-pill" id="pill-upload" onclick="switchTab('upload')">01 Ingestion</button>
+                    <button class="tab-pill" id="pill-results" onclick="switchTab('results')">02 Analytics</button>
+                    <button class="tab-pill" id="pill-history" onclick="switchTab('history')">03 History</button>
                 </div>
             </div>
 
-            <!-- MODULE 1: INGESTION (UPLOAD) -->
-            <div id="tab-upload" class="tab-content">
-                <div class="glass-panel">
-                    <div class="panel-header">
-                        <h2><span>📁</span> Raw Time-Series Ingestion</h2>
-                        <span class="brand-tag">MEMORY PARSER</span>
+            <!-- MODULE 1: INGESTION -->
+            <div id="tab-upload" class="tab-panel">
+                <div class="glass-box">
+                    <div class="box-header">
+                        <h2>Upload Time-Series CSV</h2>
+                        <span class="badge-neutral">In-Memory Processing</span>
                     </div>
 
                     <!-- Dropzone -->
                     <div class="glass-dropzone" id="dropzone">
-                        <div class="icon">⚡</div>
-                        <div class="title">Drop Time-Series CSV File Here</div>
-                        <div class="hint">Accepts standard timestamp & metric value columns (.csv)</div>
+                        <div class="drop-icon">
+                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="17 8 12 3 7 8"></polyline>
+                                <line x1="12" y1="3" x2="12" y2="15"></line>
+                            </svg>
+                        </div>
+                        <div class="drop-title">Drag & drop your CSV file here, or click to browse</div>
+                        <div class="drop-subtitle">Accepted format: .csv containing timestamp and numerical values</div>
                         <button type="button" class="btn-glass-primary" onclick="event.stopPropagation();document.getElementById('fileInput').click()">
-                            Browse Local Files
+                            Select CSV File
                         </button>
                         <input type="file" id="fileInput" accept=".csv" hidden>
                     </div>
 
-                    <!-- Staged File Info -->
-                    <div id="fileInfo" class="glass-file-info hidden">
+                    <!-- Staged File Details -->
+                    <div id="fileInfo" class="file-summary hidden">
                         <div>
-                            <strong id="fileName" style="font-size:16px;color:var(--text-white)">—</strong>
-                            <div id="fileMeta" style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--accent-amber);margin-top:4px">—</div>
+                            <div class="file-title" id="fileName">—</div>
+                            <div class="file-meta" id="fileMeta">—</div>
                         </div>
                         <div style="display:flex;gap:10px">
-                            <button class="btn-glass-primary" style="padding:8px 16px;font-size:12px" onclick="document.getElementById('fileInput').click()">Change</button>
-                            <button class="btn-glass-logout" onclick="resetUpload()">Reset</button>
+                            <button class="btn-glass-secondary" onclick="document.getElementById('fileInput').click()">Change File</button>
+                            <button class="btn-glass-danger sm" onclick="resetUpload()">Reset</button>
                         </div>
                     </div>
 
-                    <!-- Column Mapping & Sanity Checks -->
+                    <!-- Mapping Section -->
                     <div id="mappingSection" class="hidden" style="margin-top:24px">
-                        <div class="glass-mapping-grid">
+                        <div class="mapping-grid">
                             <div>
-                                <label>TIMESTAMP COLUMN</label>
+                                <label>Timestamp Column</label>
                                 <select id="tsColumn" onchange="onMappingChange()"></select>
                             </div>
                             <div>
-                                <label>VALUE COLUMN</label>
+                                <label>Metric Value Column</label>
                                 <select id="valColumn" onchange="onMappingChange()"></select>
                             </div>
                             <div>
-                                <label>METRIC IDENTIFIER</label>
-                                <input id="metricName" value="temperature" placeholder="e.g. temperature, vibration">
+                                <label>Metric Identifier</label>
+                                <input id="metricName" value="temperature" placeholder="e.g. temperature">
                             </div>
                         </div>
 
                         <div id="validationMsg" class="validation-msg hidden"></div>
 
-                        <h4 style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-dim);margin-bottom:10px;text-transform:uppercase">
-                            Raw Ingestion Stream (First 5 Rows)
-                        </h4>
-                        <div class="table-responsive" style="margin-bottom:24px">
+                        <h4 class="table-caption">CSV Preview (First 5 Rows)</h4>
+                        <div class="table-wrap" style="margin-bottom:24px">
                             <table>
                                 <thead id="previewHead"></thead>
                                 <tbody id="previewBody"></tbody>
@@ -180,66 +203,66 @@
                         </div>
 
                         <button class="btn-glass-primary" id="processBtn" onclick="processData()" disabled>
-                            Process & Launch Telemetry HUD →
+                            Process & View Analytics →
                         </button>
                     </div>
                 </div>
             </div>
 
-            <!-- MODULE 2: VISUALIZER (ANALYTICS & CHARTS) -->
-            <div id="tab-results" class="tab-content hidden">
-                <!-- 4 Glowing Stat Tiles -->
-                <div class="stat-hud-grid">
-                    <div class="stat-hud-tile">
-                        <div class="label">Total Records</div>
-                        <div class="value" id="statTotal">0</div>
-                        <div class="sub" id="statSkipped">0 skipped</div>
+            <!-- MODULE 2: ANALYTICS -->
+            <div id="tab-results" class="tab-panel hidden">
+                <!-- Stat Cards -->
+                <div class="stats-row">
+                    <div class="stat-box">
+                        <div class="stat-label">Valid Records</div>
+                        <div class="stat-value" id="statTotal">0</div>
+                        <div class="stat-sub" id="statSkipped">0 skipped</div>
                     </div>
-                    <div class="stat-hud-tile">
-                        <div class="label">Mean Average</div>
-                        <div class="value" id="statAvg">0.00</div>
-                        <div class="sub">Aggregated Value</div>
+                    <div class="stat-box">
+                        <div class="stat-label">Average Value</div>
+                        <div class="stat-value" id="statAvg">0.00</div>
+                        <div class="stat-sub">Overall mean</div>
                     </div>
-                    <div class="stat-hud-tile">
-                        <div class="label">Minimum Floor</div>
-                        <div class="value" id="statMin">0.00</div>
-                        <div class="sub">Lowest Sensor Peak</div>
+                    <div class="stat-box">
+                        <div class="stat-label">Minimum Reading</div>
+                        <div class="stat-value" id="statMin">0.00</div>
+                        <div class="stat-sub">Lowest value</div>
                     </div>
-                    <div class="stat-hud-tile">
-                        <div class="label">Maximum Ceiling</div>
-                        <div class="value" id="statMax">0.00</div>
-                        <div class="sub">Highest Sensor Peak</div>
+                    <div class="stat-box">
+                        <div class="stat-label">Maximum Reading</div>
+                        <div class="stat-value" id="statMax">0.00</div>
+                        <div class="stat-sub">Highest value</div>
                     </div>
                 </div>
 
-                <!-- Chart Panel -->
-                <div class="glass-panel">
-                    <div class="panel-header">
-                        <h2><span>📈</span> Downsampled Wave Telemetry</h2>
-                        <div style="display:flex;align-items:center;gap:12px">
-                            <label style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-dim)">BUCKET:</label>
-                            <select id="intervalSelect" onchange="updateResults()" style="padding:8px 14px;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.2);border-radius:10px;color:white;font-family:inherit;font-size:13px;outline:none">
+                <!-- Clean Chart Panel -->
+                <div class="glass-box">
+                    <div class="box-header">
+                        <h2>Aggregated Time-Series Chart</h2>
+                        <div class="header-control">
+                            <label>Interval:</label>
+                            <select id="intervalSelect" onchange="updateResults()">
                                 <option value="15">15 Minutes</option>
                                 <option value="30">30 Minutes</option>
-                                <option value="60" selected>1 Hour (Default)</option>
+                                <option value="60" selected>1 Hour</option>
                             </select>
                         </div>
                     </div>
-                    <div class="glass-chart-container">
+                    <div class="chart-canvas-wrap">
                         <canvas id="chart"></canvas>
                     </div>
                 </div>
 
-                <!-- Aggregated Table Panel -->
-                <div class="glass-panel">
-                    <div class="panel-header">
-                        <h2><span>📋</span> Aggregation Data Matrix</h2>
-                        <button class="btn-glass-primary" style="padding:8px 18px;font-size:13px" onclick="exportCSV()">Export CSV ↓</button>
+                <!-- Table Panel -->
+                <div class="glass-box">
+                    <div class="box-header">
+                        <h2>Aggregated Results Table</h2>
+                        <button class="btn-glass-secondary sm" onclick="exportCSV()">Export CSV ↓</button>
                     </div>
-                    <div class="table-responsive">
+                    <div class="table-wrap">
                         <table>
                             <thead>
-                                <tr><th>#</th><th>Bucket Start Time</th><th>Average Value</th><th>Min Peak</th><th>Max Peak</th><th>Sample Count</th></tr>
+                                <tr><th>#</th><th>Bucket Start</th><th>Average</th><th>Minimum</th><th>Maximum</th><th>Count</th></tr>
                             </thead>
                             <tbody id="resultBody"></tbody>
                         </table>
@@ -247,20 +270,20 @@
                 </div>
             </div>
 
-            <!-- MODULE 3: PERSISTENT ARCHIVES (HISTORY) -->
-            <div id="tab-history" class="tab-content hidden">
-                <div class="glass-panel">
-                    <div class="panel-header">
-                        <h2><span>🗄️</span> Supabase Cloud Telemetry Archives</h2>
-                        <span id="historyCount" class="brand-tag">0 RECORDS</span>
+            <!-- MODULE 3: HISTORY -->
+            <div id="tab-history" class="tab-panel hidden">
+                <div class="glass-box">
+                    <div class="box-header">
+                        <h2>Dataset History</h2>
+                        <span id="historyCount" class="badge-neutral">0 datasets</span>
                     </div>
-                    <div class="table-responsive">
+                    <div class="table-wrap">
                         <table>
                             <thead>
-                                <tr><th>Dataset Name</th><th>Metric</th><th>Valid Rows</th><th>Temporal Span</th><th>Ingestion Timestamp</th><th>Operations</th></tr>
+                                <tr><th>File Name</th><th>Metric</th><th>Records</th><th>Time Range</th><th>Upload Date</th><th>Actions</th></tr>
                             </thead>
                             <tbody id="historyBody">
-                                <tr><td colspan="6" style="text-align:center;color:var(--text-dim);padding:40px">Querying Supabase database...</td></tr>
+                                <tr><td colspan="6" style="text-align:center;color:var(--text-dim);padding:36px">Loading history from database...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -272,7 +295,7 @@
     </main>
 </div>
 
-<div id="toast" class="glass-toast"></div>
+<div id="toast" class="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabase-config.js"></script>
