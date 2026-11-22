@@ -44,15 +44,6 @@ async function signupWithEmail(email, password) {
     return data;
 }
 
-// Google OAuth login (with friendly error handling)
-async function loginWithGoogle() {
-    const errBox = document.getElementById('errorMsg');
-    if (errBox) {
-        errBox.innerHTML = '<strong>Google Login Notice:</strong> Google OAuth requires a Google Client ID in your Supabase Dashboard (under <em>Authentication → Providers → Google</em>).<br><br>Please <strong>use Email & Password</strong> below to log in or sign up immediately!';
-        errBox.style.display = 'block';
-    }
-}
-
 // Log out
 async function logout() {
     await window.supabaseClient.auth.signOut();
