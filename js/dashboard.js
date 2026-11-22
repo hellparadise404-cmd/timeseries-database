@@ -13,7 +13,6 @@ const TS_REGEX = /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2})?$/;
 
 // ===== Init =====
 document.addEventListener('DOMContentLoaded', async () => {
-    startLiveClock();
     state.currentUser = await requireAuth();
     if (!state.currentUser) return;
     
@@ -24,29 +23,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadHistory();
 });
 
-// ===== Live UTC Clock =====
-function startLiveClock() {
-    function updateClock() {
-        const now = new Date();
-        const p = n => String(n).padStart(2, '0');
-        const str = `${p(now.getUTCHours())}:${p(now.getUTCMinutes())}:${p(now.getUTCSeconds())} UTC`;
-        const clockEl = document.getElementById('liveClock');
-        if (clockEl) clockEl.textContent = str;
-    }
-    updateClock();
-    setInterval(updateClock, 1000);
-}
-
-// ===== Game Menu Navigation =====
+// ===== Navigation (Menu Hub & Module Selection) =====
 function openModule(tabName) {
-    document.getElementById('gameMenuHub').classList.add('hidden');
+    document.getElementById('menuHub').classList.add('hidden');
     document.getElementById('activeModuleView').classList.remove('hidden');
     switchTab(tabName);
 }
 
 function returnToMenu() {
     document.getElementById('activeModuleView').classList.add('hidden');
-    document.getElementById('gameMenuHub').classList.remove('hidden');
+    document.getElementById('menuHub').classList.remove('hidden');
 }
 
 function switchTab(name) {
@@ -84,12 +70,12 @@ function setupDropzone() {
 function handleFile(file) {
     if (!file) return;
     if (!file.name.toLowerCase().endsWith('.csv')) {
-        return showToast('⚠️ Only .csv files are accepted.');
+        return showToast('Only CSV files (.csv) are supported.');
     }
     const reader = new FileReader();
     reader.onload = e => {
         stageCSV(file.name, file.size, e.target.result);
-        showToast('✓ Ingested: ' + file.name);
+        showToast('Loaded ' + file.name);
     };
     reader.readAsText(file);
 }
@@ -104,7 +90,7 @@ function stageCSV(fileName, fileSize, raw) {
         document.getElementById('fileInfo').classList.remove('hidden');
         document.getElementById('fileName').textContent = fileName;
         document.getElementById('fileMeta').textContent =
-            (fileSize / 1024).toFixed(1) + ' KB • ' + rows.length + ' RAW ROWS DETECTED';
+            (fileSize / 1024).toFixed(1) + ' KB • ' + rows.length.toLocaleString() + ' rows';
         document.getElementById('mappingSection').classList.remove('hidden');
 
         // Preview table
@@ -115,17 +101,17 @@ function stageCSV(fileName, fileSize, raw) {
                 '<tr>' + headers.map((_, i) => '<td>' + (r.cells[i] || '') + '</td>').join('') + '</tr>'
             ).join('');
 
-        // Smart column mapping
+        // Column select
         const tsSel = document.getElementById('tsColumn');
         const valSel = document.getElementById('valColumn');
-        tsSel.innerHTML = '<option value="">-- Select Timestamp --</option>';
-        valSel.innerHTML = '<option value="">-- Select Sensor Metric --</option>';
+        tsSel.innerHTML = '<option value="">Select Timestamp</option>';
+        valSel.innerHTML = '<option value="">Select Metric Value</option>';
 
         let foundTs = false, foundVal = false;
         headers.forEach((h, i) => {
             const low = h.toLowerCase();
             const isTs = !foundTs && (low.includes('time') || low.includes('date') || low === 'ts');
-            const isVal = !foundVal && (low.includes('val') || low.includes('temp') || low.includes('metric') || low.includes('vibe'));
+            const isVal = !foundVal && (low.includes('val') || low.includes('temp') || low.includes('metric') || low.includes('sensor'));
             if (isTs) foundTs = true;
             if (isVal) foundVal = true;
             tsSel.add(new Option(h, i, false, isTs));
@@ -133,13 +119,13 @@ function stageCSV(fileName, fileSize, raw) {
         });
         onMappingChange();
     } catch (err) {
-        showToast('Parse error: ' + err.message);
+        showToast(err.message);
     }
 }
 
 function parseCSV(text) {
     const lines = text.trim().split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-    if (lines.length < 2) throw new Error('CSV must have a header + at least 1 data row.');
+    if (lines.length < 2) throw new Error('CSV must contain a header row and at least one data row.');
     const headers = lines[0].split(',').map(h => h.trim());
     const rows = lines.slice(1).map((line, i) => ({
         line: i + 2,
@@ -161,8 +147,8 @@ function onMappingChange() {
         return;
     }
     if (tsIdx === valIdx) {
-        msgBox.style.cssText = 'background:rgba(239,68,68,0.2);color:#fca5a5;padding:12px;border-radius:10px;margin-bottom:16px;border:1px solid rgba(239,68,68,0.4);font-size:13px';
-        msgBox.textContent = '❌ Timestamp and Value columns must be distinct.';
+        msgBox.className = 'validation-msg error';
+        msgBox.textContent = 'Timestamp and Value columns must be different.';
         msgBox.classList.remove('hidden');
         document.getElementById('processBtn').disabled = true;
         return;
@@ -170,11 +156,11 @@ function onMappingChange() {
 
     const result = validateRecords(state.staged.rows, +tsIdx, +valIdx);
     if (!result.valid.length) {
-        msgBox.style.cssText = 'background:rgba(239,68,68,0.2);color:#fca5a5;padding:12px;border-radius:10px;margin-bottom:16px;border:1px solid rgba(239,68,68,0.4);font-size:13px';
-        msgBox.textContent = '❌ 0 valid points found (' + result.errors.length + ' skipped).';
+        msgBox.className = 'validation-msg error';
+        msgBox.textContent = '0 valid records found (' + result.errors.length + ' skipped).';
     } else {
-        msgBox.style.cssText = 'background:rgba(52,211,153,0.15);color:#6ee7b7;padding:12px;border-radius:10px;margin-bottom:16px;border:1px solid rgba(52,211,153,0.3);font-size:13px';
-        msgBox.textContent = `✓ Ingestion verified: ${result.valid.length} valid points (${result.errors.length} skipped outliers).`;
+        msgBox.className = 'validation-msg success';
+        msgBox.textContent = `${result.valid.length.toLocaleString()} valid records detected (${result.errors.length} skipped).`;
     }
     msgBox.classList.remove('hidden');
     document.getElementById('processBtn').disabled = !result.valid.length;
@@ -189,11 +175,11 @@ function validateRecords(rows, tsIdx, valIdx) {
         const val = Number(rawVal);
 
         if (!rawTs || isNaN(date.getTime())) {
-            errors.push('Row ' + r.line + ': Bad timestamp');
+            errors.push('Row ' + r.line + ': Invalid timestamp');
             continue;
         }
         if (rawVal === '' || rawVal === undefined || !Number.isFinite(val)) {
-            errors.push('Row ' + r.line + ': Non-numeric');
+            errors.push('Row ' + r.line + ': Non-numeric value');
             continue;
         }
         valid.push({ timestamp: date, value: val });
@@ -217,15 +203,15 @@ function processData() {
     updateResults();
     switchTab('results');
     saveToSupabase();
-    showToast(`✓ Telemetry Loaded: ${state.records.length} points`);
+    showToast('Processed ' + state.records.length.toLocaleString() + ' records.');
 }
 
 // ===== Aggregation =====
-function aggregateRecords(records, interval) {
+function aggregateRecords(records, intervalMin) {
     const buckets = {}, order = [];
     for (const r of records) {
         const d = new Date(r.timestamp.getTime());
-        d.setMinutes(Math.floor(d.getMinutes() / interval) * interval, 0, 0);
+        d.setMinutes(Math.floor(d.getMinutes() / intervalMin) * intervalMin, 0, 0);
         const key = formatDate(d);
         if (!buckets[key]) { buckets[key] = []; order.push(key); }
         buckets[key].push(r.value);
@@ -258,107 +244,152 @@ function calcStats(records) {
 
 // ===== Render Results =====
 function updateResults() {
-    const interval = +document.getElementById('intervalSelect').value;
-    const agg = aggregateRecords(state.records, interval);
+    const intervalMin = +document.getElementById('intervalSelect').value;
+    const agg = aggregateRecords(state.records, intervalMin);
     state.aggregated = agg;
 
     const stats = calcStats(state.records);
     document.getElementById('statTotal').textContent = stats.total.toLocaleString();
-    document.getElementById('statSkipped').textContent = state.errors.length + ' skipped outliers';
+    document.getElementById('statSkipped').textContent = state.errors.length + ' skipped';
     document.getElementById('statAvg').textContent = stats.avg.toFixed(2);
     document.getElementById('statMin').textContent = stats.min.toFixed(2);
     document.getElementById('statMax').textContent = stats.max.toFixed(2);
 
     renderChart(agg);
 
-    document.getElementById('resultBody').innerHTML = agg.map(r =>
+    // Limit table display to first 100 rows for performance
+    const displayRows = agg.slice(0, 100);
+    document.getElementById('resultBody').innerHTML = displayRows.map(r =>
         '<tr>' +
-        '<td><span style="font-family:\'JetBrains Mono\',monospace;color:var(--accent-amber)">#' + r.id + '</span></td>' +
-        '<td><strong style="color:var(--text-white)">' + r.bucket + '</strong></td>' +
-        '<td><span style="color:var(--accent-cyan);font-weight:700">' + r.avg.toFixed(2) + '</span></td>' +
+        '<td class="mono">#' + r.id + '</td>' +
+        '<td><strong>' + r.bucket + '</strong></td>' +
+        '<td class="metric-val">' + r.avg.toFixed(2) + '</td>' +
         '<td>' + r.min.toFixed(2) + '</td>' +
         '<td>' + r.max.toFixed(2) + '</td>' +
-        '<td><span class="brand-tag" style="padding:2px 8px">' + r.count + ' pts</span></td>' +
+        '<td><span class="badge">' + r.count + '</span></td>' +
         '</tr>'
-    ).join('');
+    ).join('') + (agg.length > 100 ? `<tr><td colspan="6" style="text-align:center;color:var(--text-dim);padding:14px">Showing first 100 of ${agg.length.toLocaleString()} buckets (use Export CSV for full dataset)</td></tr>` : '');
 }
 
-// ===== Glowing Chart.js Setup =====
+// ===== Professional Chart.js (Clean line, NO clutter dots) =====
 function renderChart(agg) {
     if (state.chart) state.chart.destroy();
     const ctx = document.getElementById('chart').getContext('2d');
     
-    // Gradient fill under the wave
-    const gradient = ctx.createLinearGradient(0, 0, 0, 320);
-    gradient.addColorStop(0, 'rgba(56, 189, 248, 0.35)');
+    // Smooth subtle area fill
+    const gradient = ctx.createLinearGradient(0, 0, 0, 360);
+    gradient.addColorStop(0, 'rgba(56, 189, 248, 0.25)');
     gradient.addColorStop(1, 'rgba(56, 189, 248, 0.0)');
+
+    // Only show min/max bound lines if there are buckets with multiple samples
+    const hasVariation = agg.some(r => r.max !== r.min);
+
+    const datasets = [
+        {
+            label: 'Average',
+            data: agg.map(r => r.avg),
+            borderColor: '#38bdf8',
+            backgroundColor: gradient,
+            fill: true,
+            borderWidth: 2,
+            tension: 0.15,
+            pointRadius: 0,              // NO DOTS BY DEFAULT - PREVENTS WHITE BLOB
+            pointHoverRadius: 6,         // Only highlight hovered point
+            pointHoverBackgroundColor: '#38bdf8',
+            pointHoverBorderColor: '#ffffff',
+            pointHoverBorderWidth: 2
+        }
+    ];
+
+    if (hasVariation) {
+        datasets.push(
+            {
+                label: 'Max Peak',
+                data: agg.map(r => r.max),
+                borderColor: '#fbbf24',
+                borderDash: [4, 4],
+                borderWidth: 1.5,
+                tension: 0.15,
+                pointRadius: 0,
+                pointHoverRadius: 4,
+                fill: false
+            },
+            {
+                label: 'Min Floor',
+                data: agg.map(r => r.min),
+                borderColor: '#94a3b8',
+                borderDash: [4, 4],
+                borderWidth: 1.5,
+                tension: 0.15,
+                pointRadius: 0,
+                pointHoverRadius: 4,
+                fill: false
+            }
+        );
+    }
+
+    // Format cleaner X-axis labels
+    const labels = agg.map(r => {
+        // e.g. "2026-05-01 14:00:00" -> format shorter
+        const parts = r.bucket.split(' ');
+        return parts.length === 2 ? parts[0] + ' ' + parts[1].slice(0, 5) : r.bucket;
+    });
 
     state.chart = new Chart(ctx, {
         type: 'line',
-        data: {
-            labels: agg.map(r => r.bucket),
-            datasets: [
-                {
-                    label: 'Downsampled Average',
-                    data: agg.map(r => r.avg),
-                    borderColor: '#38bdf8',
-                    backgroundColor: gradient,
-                    fill: true,
-                    borderWidth: 3,
-                    tension: 0.3,
-                    pointBackgroundColor: '#38bdf8',
-                    pointBorderColor: '#ffffff',
-                    pointHoverRadius: 6,
-                    pointRadius: 4
-                },
-                {
-                    label: 'Maximum Bound',
-                    data: agg.map(r => r.max),
-                    borderColor: '#fbbf24',
-                    borderDash: [6, 4],
-                    borderWidth: 2,
-                    tension: 0.25,
-                    pointRadius: 2,
-                    fill: false
-                },
-                {
-                    label: 'Minimum Bound',
-                    data: agg.map(r => r.min),
-                    borderColor: '#94a3b8',
-                    borderDash: [6, 4],
-                    borderWidth: 2,
-                    tension: 0.25,
-                    pointRadius: 2,
-                    fill: false
-                }
-            ]
-        },
+        data: { labels, datasets },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false
+            },
             plugins: {
                 legend: {
                     position: 'top',
-                    labels: { color: '#e2e8f0', font: { family: 'Plus Jakarta Sans', weight: '600' } }
+                    labels: {
+                        color: '#cbd5e1',
+                        font: { family: 'Plus Jakarta Sans', size: 12, weight: '600' },
+                        boxWidth: 16,
+                        boxHeight: 8,
+                        usePointStyle: false
+                    }
                 },
                 tooltip: {
-                    backgroundColor: 'rgba(15, 26, 48, 0.95)',
+                    backgroundColor: 'rgba(10, 18, 34, 0.95)',
                     titleColor: '#fbbf24',
-                    bodyColor: '#ffffff',
-                    borderColor: 'rgba(255, 255, 255, 0.2)',
+                    titleFont: { family: 'JetBrains Mono', size: 12 },
+                    bodyColor: '#f1f5f9',
+                    bodyFont: { family: 'Plus Jakarta Sans', size: 13 },
+                    borderColor: 'rgba(255, 255, 255, 0.15)',
                     borderWidth: 1,
                     padding: 12,
-                    cornerRadius: 10
+                    cornerRadius: 8,
+                    displayColors: true
                 }
             },
             scales: {
                 x: {
-                    ticks: { color: '#94a3b8', font: { family: 'JetBrains Mono', size: 11 } },
-                    grid: { display: false }
+                    ticks: {
+                        color: '#94a3b8',
+                        font: { family: 'JetBrains Mono', size: 11 },
+                        maxTicksLimit: 10,        // Clean spacing, no overlapping
+                        maxRotation: 0,           // Flat horizontal labels
+                        autoSkip: true
+                    },
+                    grid: {
+                        display: false
+                    }
                 },
                 y: {
-                    ticks: { color: '#94a3b8', font: { family: 'JetBrains Mono', size: 11 } },
-                    grid: { color: 'rgba(255, 255, 255, 0.08)' }
+                    ticks: {
+                        color: '#94a3b8',
+                        font: { family: 'JetBrains Mono', size: 11 }
+                    },
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.06)'
+                    }
                 }
             }
         }
@@ -385,9 +416,9 @@ async function saveToSupabase() {
 
     if (error) {
         console.error('Supabase error:', error);
-        showToast('⚠️ Cloud sync error.');
+        showToast('Database sync warning.');
     } else {
-        showToast('✓ Saved to Supabase Cloud Archive');
+        showToast('Saved to database.');
     }
 }
 
@@ -402,23 +433,23 @@ async function loadHistory() {
         .select('*')
         .order('created_at', { ascending: false });
 
-    if (countEl) countEl.textContent = (data ? data.length : 0) + ' MISSIONS';
+    if (countEl) countEl.textContent = (data ? data.length : 0) + ' datasets';
 
     if (error || !data || !data.length) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-dim);padding:44px">No archived missions found. Upload your first dataset!</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-dim);padding:44px">No datasets found in history.</td></tr>';
         return;
     }
 
     tbody.innerHTML = data.map(d =>
         '<tr>' +
         '<td><strong style="color:var(--text-white)">' + d.file_name + '</strong></td>' +
-        '<td><span class="brand-tag">' + (d.metric_name || 'value') + '</span></td>' +
-        '<td><span style="font-family:\'JetBrains Mono\',monospace;color:var(--accent-amber)">' + d.total_records.toLocaleString() + '</span></td>' +
-        '<td style="font-family:\'JetBrains Mono\',monospace;font-size:12px;color:var(--text-dim)">' + (d.start_time || '—') + ' → ' + (d.end_time || '—') + '</td>' +
-        '<td style="font-size:12px;color:var(--text-dim)">' + new Date(d.created_at).toLocaleString() + '</td>' +
+        '<td><span class="badge">' + (d.metric_name || 'value') + '</span></td>' +
+        '<td class="mono">' + d.total_records.toLocaleString() + '</td>' +
+        '<td class="mono-dim">' + (d.start_time || '—') + ' → ' + (d.end_time || '—') + '</td>' +
+        '<td class="mono-dim">' + new Date(d.created_at).toLocaleString() + '</td>' +
         '<td>' +
-            '<button class="btn-glass-primary" style="padding:6px 14px;font-size:12px;margin-right:8px" onclick="viewDataset(\'' + d.id + '\')">Load</button>' +
-            '<button class="btn-glass-logout" style="padding:6px 14px;font-size:12px" onclick="deleteDataset(\'' + d.id + '\')">Delete</button>' +
+            '<button class="btn-glass-primary sm" onclick="viewDataset(\'' + d.id + '\')">View</button> ' +
+            '<button class="btn-glass-danger sm" onclick="deleteDataset(\'' + d.id + '\')">Delete</button>' +
         '</td></tr>'
     ).join('');
 }
@@ -426,7 +457,7 @@ async function loadHistory() {
 // ===== View & Restore Dataset =====
 async function viewDataset(id) {
     const { data, error } = await window.supabaseClient.from('datasets').select('*').eq('id', id).single();
-    if (error || !data) return showToast('⚠️ Could not restore mission.');
+    if (error || !data) return showToast('Could not load dataset.');
 
     state.records = (data.raw_data || []).map((r, i) => ({
         record_id: i + 1,
@@ -438,21 +469,21 @@ async function viewDataset(id) {
 
     updateResults();
     switchTab('results');
-    showToast('✓ Restored Archive: ' + data.file_name);
+    showToast('Loaded ' + data.file_name);
 }
 
 // ===== Delete Dataset =====
 async function deleteDataset(id) {
-    if (!confirm('Permanently purge this mission from Supabase?')) return;
+    if (!confirm('Permanently delete this dataset from history?')) return;
     const { error } = await window.supabaseClient.from('datasets').delete().eq('id', id);
-    if (error) return showToast('⚠️ Delete failed.');
-    showToast('✓ Mission purged.');
+    if (error) return showToast('Delete failed.');
+    showToast('Deleted dataset.');
     loadHistory();
 }
 
 // ===== Export CSV =====
 function exportCSV() {
-    if (!state.aggregated.length) return showToast('⚠️ No data to export.');
+    if (!state.aggregated.length) return showToast('No data to export.');
     const csv = [
         'id,bucket_start,average,min,max,count',
         ...state.aggregated.map(r =>
@@ -462,9 +493,9 @@ function exportCSV() {
     const blob = new Blob([csv], { type: 'text/csv' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'telemetry_aggregated.csv';
+    a.download = 'aggregated_results.csv';
     a.click();
-    showToast('✓ Telemetry CSV exported.');
+    showToast('Exported aggregated CSV.');
 }
 
 // ===== Reset Upload =====
@@ -493,5 +524,5 @@ function showToast(msg) {
     t.textContent = msg;
     t.style.display = 'block';
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => t.style.display = 'none', 3500);
+    toastTimer = setTimeout(() => t.style.display = 'none', 3000);
 }
