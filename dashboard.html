@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard — Time-Series DB</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<div class="dashboard">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="brand">
+            <span class="brand-icon">📈</span>
+            <span class="brand-name">Time-Series DB</span>
+            <small>PST_AD_159 • G504</small>
+        </div>
+        <nav>
+            <a href="#upload" class="active" onclick="showSection('upload')">📤 Upload CSV</a>
+            <a href="#results" onclick="showSection('results')">📊 Results</a>
+            <a href="#history" onclick="showSection('history')">🗄️ History</a>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="user-email" id="userEmail">loading...</div>
+            <button class="logout-btn" onclick="logout()">↩ Log Out</button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="top-bar">
+            <h1 id="pageTitle">Upload CSV</h1>
+            <span class="badge">📡 In-Memory Viewer</span>
+        </div>
+
+        <div class="content">
+
+            <!-- ===== UPLOAD SECTION ===== -->
+            <section id="section-upload">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Upload Time-Series Dataset</h2>
+                    </div>
+                    <div class="card-body">
+                        <p style="color:var(--text-muted);margin-bottom:16px">
+                            Upload a CSV with <strong>timestamp</strong> and numerical <strong>value</strong> columns.
+                        </p>
+
+                        <!-- Dropzone -->
+                        <div class="dropzone" id="dropzone">
+                            <div class="icon">📁</div>
+                            <div class="title">Drag & drop a CSV file here, or click to browse</div>
+                            <div class="hint">Accepted format: .csv (e.g. timestamp, value)</div>
+                            <button type="button" class="btn-sm" onclick="event.stopPropagation();document.getElementById('fileInput').click()">Select CSV File</button>
+                            <input type="file" id="fileInput" accept=".csv" hidden>
+                        </div>
+
+                        <!-- File info (after upload) -->
+                        <div id="fileInfo" class="file-info hidden">
+                            <div>
+                                <strong id="fileName"></strong>
+                                <small id="fileMeta" style="display:block;color:var(--text-muted)"></small>
+                            </div>
+                            <div>
+                                <button class="btn-sm" onclick="document.getElementById('fileInput').click()" style="margin-right:8px">Change</button>
+                                <button class="btn-sm" onclick="resetUpload()" style="background:var(--danger)">Reset</button>
+                            </div>
+                        </div>
+
+                        <!-- Column mapping (after upload) -->
+                        <div id="mappingSection" class="hidden" style="margin-top:20px">
+                            <div class="mapping-grid">
+                                <div>
+                                    <label>Timestamp Column</label>
+                                    <select id="tsColumn" onchange="onMappingChange()"></select>
+                                </div>
+                                <div>
+                                    <label>Value Column</label>
+                                    <select id="valColumn" onchange="onMappingChange()"></select>
+                                </div>
+                                <div>
+                                    <label>Metric Name</label>
+                                    <input id="metricName" value="temperature" placeholder="e.g. temperature">
+                                </div>
+                            </div>
+
+                            <div id="validationMsg" class="validation-msg hidden"></div>
+
+                            <h3 style="font-size:14px;color:var(--text-muted);margin-bottom:8px">Preview (First 5 Rows)</h3>
+                            <div style="overflow-x:auto;border:1px solid var(--border);border-radius:8px;margin-bottom:16px">
+                                <table>
+                                    <thead id="previewHead"></thead>
+                                    <tbody id="previewBody"></tbody>
+                                </table>
+                            </div>
+
+                            <button class="btn-primary" style="width:auto;padding:10px 28px" id="processBtn" onclick="processData()" disabled>
+                                Process & View →
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===== RESULTS SECTION ===== -->
+            <section id="section-results" class="hidden">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="label">Valid Records</div>
+                        <div class="value" id="statTotal">0</div>
+                        <div class="sub" id="statSkipped">0 skipped</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label">Average</div>
+                        <div class="value" id="statAvg">0.00</div>
+                        <div class="sub">Mean value</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label">Minimum</div>
+                        <div class="value" id="statMin">0.00</div>
+                        <div class="sub">Lowest reading</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label">Maximum</div>
+                        <div class="value" id="statMax">0.00</div>
+                        <div class="sub">Highest reading</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Aggregated Time-Series Chart</h2>
+                        <select id="intervalSelect" onchange="updateResults()" style="padding:6px 12px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:13px">
+                            <option value="15">15 min buckets</option>
+                            <option value="30">30 min buckets</option>
+                            <option value="60" selected>1 hour buckets</option>
+                        </select>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="chart"></canvas>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Aggregated Results Table</h2>
+                        <button class="btn-sm" onclick="exportCSV()">Export CSV ↓</button>
+                    </div>
+                    <div style="overflow-x:auto">
+                        <table>
+                            <thead>
+                                <tr><th>#</th><th>Bucket Start</th><th>Average</th><th>Min</th><th>Max</th><th>Count</th></tr>
+                            </thead>
+                            <tbody id="resultBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div style="text-align:center;padding:8px">
+                    <button class="btn-sm" onclick="resetUpload()" style="background:#64748b">← Upload Another</button>
+                </div>
+            </section>
+
+            <!-- ===== HISTORY SECTION ===== -->
+            <section id="section-history" class="hidden">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Upload History</h2>
+                        <small id="historyCount" style="color:var(--text-muted)">0 datasets</small>
+                    </div>
+                    <div style="overflow-x:auto">
+                        <table>
+                            <thead>
+                                <tr><th>File</th><th>Metric</th><th>Records</th><th>Time Range</th><th>Uploaded</th><th>Actions</th></tr>
+                            </thead>
+                            <tbody id="historyBody">
+                                <tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:40px">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/dashboard.js"></script>
+</body>
+</html>
