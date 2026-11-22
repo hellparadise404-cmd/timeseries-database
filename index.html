@@ -8,36 +8,12 @@
     <link rel="stylesheet" href="css/style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body>
+<body class="auth-page">
 
 <div class="auth-split-layout">
     <div class="auth-split-container">
 
-        <!-- Left: Liquid Glass Login Card -->
-        <div class="liquid-glass-card">
-            <h1>TimeSeries DB</h1>
-            <p class="subtitle">Enter your credentials to access the viewer</p>
-
-            <div id="errorMsg" class="validation-box error hidden"></div>
-
-            <form onsubmit="handleLogin(event)">
-                <div class="form-group">
-                    <label for="email">Email Address</label>
-                    <input type="email" id="email" placeholder="name@company.com" required autocomplete="email">
-                </div>
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" placeholder="••••••••" required autocomplete="current-password">
-                </div>
-                <button type="submit" class="btn-liquid-primary" id="submitBtn">Sign In</button>
-            </form>
-
-            <div class="auth-footer-links">
-                Don't have an account? <a href="signup.html">Create an Account</a>
-            </div>
-        </div>
-
-        <!-- Right: Interactive Liquid Glass Telemetry Showcase -->
+        <!-- Left: Static Liquid Glass Telemetry Showcase -->
         <div class="glass-showcase">
             <div>
                 <div class="showcase-header">
@@ -59,7 +35,7 @@
 
             <div class="showcase-footer-stats">
                 <div class="showcase-stat-item">
-                    <div class="label">Live Readout</div>
+                    <div class="label">Current Readout</div>
                     <div class="val" id="statLiveVal">24.6 °C</div>
                 </div>
                 <div class="showcase-stat-item">
@@ -67,9 +43,33 @@
                     <div class="val">100 ms</div>
                 </div>
                 <div class="showcase-stat-item">
-                    <div class="label">Feed Status</div>
-                    <div class="val" style="color:var(--accent-green)">Active</div>
+                    <div class="label">Sensor Status</div>
+                    <div class="val" style="color:var(--accent-green)">Nominal</div>
                 </div>
+            </div>
+        </div>
+
+        <!-- Right: Liquid Glass Login Card -->
+        <div class="liquid-glass-card">
+            <h1>TimeSeries DB</h1>
+            <p class="subtitle">Enter your credentials to access the viewer</p>
+
+            <div id="errorMsg" class="validation-box error hidden"></div>
+
+            <form onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" placeholder="name@company.com" required autocomplete="email">
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" placeholder="••••••••" required autocomplete="current-password">
+                </div>
+                <button type="submit" class="btn-liquid-primary" id="submitBtn">Sign In</button>
+            </form>
+
+            <div class="auth-footer-links">
+                Don't have an account? <a href="signup.html">Create an Account</a>
             </div>
         </div>
 
@@ -104,7 +104,7 @@
         }
     }
 
-    // ===== Interactive Showcase Wave Chart =====
+    // ===== Static Showcase Wave Chart =====
     let currentMetric = 'temp';
     let showcaseChart = null;
 
@@ -141,7 +141,7 @@
             const time = new Date(now - i * 3600000);
             labels.push(time.getHours().toString().padStart(2, '0') + ':00');
             const wave = Math.sin((24 - i) / 3) * cfg.amp;
-            const noise = (Math.random() - 0.5) * (cfg.amp * 0.4);
+            const noise = ((i * 7) % 5 - 2) * (cfg.amp * 0.15);
             points.push(+(cfg.base + wave + noise).toFixed(2));
         }
         return { labels, points };
@@ -178,14 +178,14 @@
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                animation: { duration: 500 },
+                animation: { duration: 400 },
                 plugins: {
                     legend: { display: false },
                     tooltip: {
                         backgroundColor: 'rgba(10, 18, 34, 0.95)',
                         titleColor: '#cbd5e1',
                         bodyColor: '#ffffff',
-                        borderColor: 'rgba(255, 255, 255, 0.15)',
+                        borderColor: 'rgba(255, 255, 255, 0.2)',
                         borderWidth: 1,
                         padding: 10,
                         callbacks: {
@@ -197,37 +197,18 @@
                 },
                 scales: {
                     x: {
-                        ticks: { color: '#64748b', font: { family: 'JetBrains Mono', size: 10 }, maxTicksLimit: 7 },
+                        ticks: { color: '#94a3b8', font: { family: 'JetBrains Mono', size: 10 }, maxTicksLimit: 7 },
                         grid: { display: false }
                     },
                     y: {
-                        ticks: { color: '#64748b', font: { family: 'JetBrains Mono', size: 10 } },
-                        grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                        ticks: { color: '#94a3b8', font: { family: 'JetBrains Mono', size: 10 } },
+                        grid: { color: 'rgba(255, 255, 255, 0.08)' }
                     }
                 }
             }
         });
 
-        // Set live stat
         document.getElementById('statLiveVal').textContent = `${data.points[data.points.length - 1]} ${cfg.unit}`;
-
-        // Live stream heartbeat
-        if (!window.showcaseInterval) {
-            window.showcaseInterval = setInterval(() => {
-                if (!showcaseChart) return;
-                const activeCfg = metricConfigs[currentMetric];
-                const wave = Math.sin(Date.now() / 2000) * activeCfg.amp;
-                const noise = (Math.random() - 0.5) * (activeCfg.amp * 0.35);
-                const newVal = +(activeCfg.base + wave + noise).toFixed(2);
-
-                showcaseChart.data.datasets[0].data.shift();
-                showcaseChart.data.datasets[0].data.push(newVal);
-                showcaseChart.update('none');
-
-                const liveEl = document.getElementById('statLiveVal');
-                if (liveEl) liveEl.textContent = `${newVal} ${activeCfg.unit}`;
-            }, 1800);
-        }
     }
 
     function switchMetric(key) {
