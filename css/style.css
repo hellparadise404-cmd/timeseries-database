@@ -667,13 +667,97 @@ body::before {
 
 
 /* ========================================================
+   CHART ZOOM TOOLBAR
+======================================================== */
+
+.zoom-hint {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 2px;
+}
+
+.zoom-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    margin-bottom: 12px;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.zoom-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.zoom-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-right: 4px;
+}
+
+.btn-zoom-preset {
+    padding: 4px 10px;
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-dim);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-zoom-preset:hover {
+    color: var(--text-white);
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.btn-zoom-preset.active {
+    background: rgba(56, 189, 248, 0.2);
+    color: var(--accent-blue);
+    border-color: rgba(56, 189, 248, 0.4);
+}
+
+.btn-zoom-action {
+    padding: 4px 12px;
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-white);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-zoom-action:hover {
+    background: rgba(255, 255, 255, 0.18);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* ========================================================
    CHART CANVAS WRAPPER
 ======================================================== */
 
 .chart-canvas-wrap {
-    height: 380px;
+    height: 400px;
     position: relative;
     padding: 8px;
+    cursor: grab;
+}
+
+.chart-canvas-wrap:active {
+    cursor: grabbing;
 }
 
 
