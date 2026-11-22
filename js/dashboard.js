@@ -271,30 +271,29 @@ function updateResults() {
     ).join('') + (agg.length > 100 ? `<tr><td colspan="6" style="text-align:center;color:var(--text-dim);padding:14px">Showing first 100 of ${agg.length.toLocaleString()} buckets (use Export CSV for full dataset)</td></tr>` : '');
 }
 
-// ===== Professional Chart.js (Clean line, NO clutter dots) =====
+// ===== Professional Chart with Zoom & Pan Plugin =====
 function renderChart(agg) {
     if (state.chart) state.chart.destroy();
     const ctx = document.getElementById('chart').getContext('2d');
     
     // Smooth subtle area fill
     const gradient = ctx.createLinearGradient(0, 0, 0, 360);
-    gradient.addColorStop(0, 'rgba(56, 189, 248, 0.25)');
+    gradient.addColorStop(0, 'rgba(56, 189, 248, 0.28)');
     gradient.addColorStop(1, 'rgba(56, 189, 248, 0.0)');
 
-    // Only show min/max bound lines if there are buckets with multiple samples
     const hasVariation = agg.some(r => r.max !== r.min);
 
     const datasets = [
         {
-            label: 'Average',
+            label: 'Average Value',
             data: agg.map(r => r.avg),
             borderColor: '#38bdf8',
             backgroundColor: gradient,
             fill: true,
             borderWidth: 2,
-            tension: 0.15,
-            pointRadius: 0,              // NO DOTS BY DEFAULT - PREVENTS WHITE BLOB
-            pointHoverRadius: 6,         // Only highlight hovered point
+            tension: 0.2,
+            pointRadius: 0,              // Prevents solid white blob
+            pointHoverRadius: 6,         // Visible on hover
             pointHoverBackgroundColor: '#38bdf8',
             pointHoverBorderColor: '#ffffff',
             pointHoverBorderWidth: 2
@@ -309,7 +308,7 @@ function renderChart(agg) {
                 borderColor: '#fbbf24',
                 borderDash: [4, 4],
                 borderWidth: 1.5,
-                tension: 0.15,
+                tension: 0.2,
                 pointRadius: 0,
                 pointHoverRadius: 4,
                 fill: false
@@ -320,7 +319,7 @@ function renderChart(agg) {
                 borderColor: '#94a3b8',
                 borderDash: [4, 4],
                 borderWidth: 1.5,
-                tension: 0.15,
+                tension: 0.2,
                 pointRadius: 0,
                 pointHoverRadius: 4,
                 fill: false
@@ -328,9 +327,7 @@ function renderChart(agg) {
         );
     }
 
-    // Format cleaner X-axis labels
     const labels = agg.map(r => {
-        // e.g. "2026-05-01 14:00:00" -> format shorter
         const parts = r.bucket.split(' ');
         return parts.length === 2 ? parts[0] + ' ' + parts[1].slice(0, 5) : r.bucket;
     });
@@ -352,8 +349,7 @@ function renderChart(agg) {
                         color: '#cbd5e1',
                         font: { family: 'Plus Jakarta Sans', size: 12, weight: '600' },
                         boxWidth: 16,
-                        boxHeight: 8,
-                        usePointStyle: false
+                        boxHeight: 8
                     }
                 },
                 tooltip: {
@@ -365,8 +361,25 @@ function renderChart(agg) {
                     borderColor: 'rgba(255, 255, 255, 0.15)',
                     borderWidth: 1,
                     padding: 12,
-                    cornerRadius: 8,
-                    displayColors: true
+                    cornerRadius: 8
+                },
+                // Zoom & Pan Configuration
+                zoom: {
+                    pan: {
+                        enabled: true,
+                        mode: 'x',
+                        threshold: 5
+                    },
+                    zoom: {
+                        wheel: {
+                            enabled: true,
+                            speed: 0.08
+                        },
+                        pinch: {
+                            enabled: true
+                        },
+                        mode: 'x'
+                    }
                 }
             },
             scales: {
@@ -374,8 +387,8 @@ function renderChart(agg) {
                     ticks: {
                         color: '#94a3b8',
                         font: { family: 'JetBrains Mono', size: 11 },
-                        maxTicksLimit: 10,        // Clean spacing, no overlapping
-                        maxRotation: 0,           // Flat horizontal labels
+                        maxTicksLimit: 12,
+                        maxRotation: 0,
                         autoSkip: true
                     },
                     grid: {
@@ -394,6 +407,77 @@ function renderChart(agg) {
             }
         }
     });
+}
+
+// ===== Zoom & Pan Control Functions =====
+function zoomIn() {
+    if (state.chart) {
+        state.chart.zoom(1.3);
+        clearActivePreset();
+    }
+}
+
+function zoomOut() {
+    if (state.chart) {
+        state.chart.zoom(0.77);
+        clearActivePreset();
+    }
+}
+
+function resetZoom() {
+    if (state.chart) {
+        state.chart.resetZoom();
+        setActivePreset('all');
+    }
+}
+
+function setWindowPreset(days) {
+    if (!state.chart || !state.aggregated.length) return;
+    
+    // First reset zoom so index calculations are clean
+    state.chart.resetZoom();
+    setActivePreset(days);
+
+    if (days === 'all') return;
+
+    const totalBuckets = state.aggregated.length;
+    const intervalMin = +document.getElementById('intervalSelect').value || 60;
+    
+    // Calculate how many points correspond to the requested number of days
+    const bucketsForDays = Math.round((days * 24 * 60) / intervalMin);
+    
+    if (bucketsForDays >= totalBuckets) return; // Already fits completely
+
+    // Show the most recent `days` period with generous spacing
+    const minIndex = Math.max(0, totalBuckets - bucketsForDays);
+    const maxIndex = totalBuckets - 1;
+
+    // Apply zoom on x scale
+    if (typeof state.chart.zoomScale === 'function') {
+        state.chart.zoomScale('x', { min: minIndex, max: maxIndex }, 'default');
+    } else {
+        const factor = totalBuckets / bucketsForDays;
+        state.chart.zoom(factor);
+    }
+}
+
+function setActivePreset(days) {
+    document.querySelectorAll('.btn-zoom-preset').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    if (days === 'all') {
+        const allBtn = document.getElementById('btnPresetAll');
+        if (allBtn) allBtn.classList.add('active');
+    } else {
+        const matchingBtn = Array.from(document.querySelectorAll('.btn-zoom-preset')).find(
+            b => b.textContent.includes(String(days))
+        );
+        if (matchingBtn) matchingBtn.classList.add('active');
+    }
+}
+
+function clearActivePreset() {
+    document.querySelectorAll('.btn-zoom-preset').forEach(b => b.classList.remove('active'));
 }
 
 // ===== Supabase Cloud Persistence =====
