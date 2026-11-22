@@ -4,39 +4,79 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Create Account — TimeSeries DB</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
-<div class="auth-page">
-    <div class="auth-card">
-        <div class="auth-header">
+<div class="auth-split-layout">
+    <div class="auth-split-container">
+
+        <!-- Left: Liquid Glass Signup Card -->
+        <div class="liquid-glass-card">
             <h1>Create Account</h1>
-            <p>Set up an account to store and analyze datasets</p>
+            <p class="subtitle">Set up an account to store and analyze datasets</p>
+
+            <div id="errorMsg" class="validation-box error hidden"></div>
+
+            <form onsubmit="handleSignup(event)">
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" placeholder="name@company.com" required autocomplete="email">
+                </div>
+                <div class="form-group">
+                    <label for="password">Password (Minimum 6 characters)</label>
+                    <input type="password" id="password" placeholder="••••••••" minlength="6" required autocomplete="new-password">
+                </div>
+                <div class="form-group">
+                    <label for="confirmPassword">Confirm Password</label>
+                    <input type="password" id="confirmPassword" placeholder="••••••••" minlength="6" required autocomplete="new-password">
+                </div>
+                <button type="submit" class="btn-liquid-primary" id="submitBtn">Create Account</button>
+            </form>
+
+            <div class="auth-footer-links">
+                Already have an account? <a href="index.html">Sign In</a>
+            </div>
         </div>
 
-        <div id="errorMsg" class="validation-box error hidden"></div>
+        <!-- Right: Interactive Liquid Glass Telemetry Showcase -->
+        <div class="glass-showcase">
+            <div>
+                <div class="showcase-header">
+                    <div class="showcase-title-group">
+                        <span class="live-indicator"></span>
+                        <span class="showcase-title">Telemetry Sensor Stream</span>
+                    </div>
+                    <div class="showcase-metrics-tabs">
+                        <button type="button" class="showcase-tab active" onclick="switchMetric('temp')">Temperature</button>
+                        <button type="button" class="showcase-tab" onclick="switchMetric('vib')">Vibration</button>
+                        <button type="button" class="showcase-tab" onclick="switchMetric('press')">Pressure</button>
+                    </div>
+                </div>
 
-        <form class="auth-form" onsubmit="handleSignup(event)">
-            <div class="form-group">
-                <label for="email">Email Address</label>
-                <input type="email" id="email" placeholder="you@example.com" required autocomplete="email">
+                <div class="showcase-canvas-box">
+                    <canvas id="showcaseChart"></canvas>
+                </div>
             </div>
-            <div class="form-group">
-                <label for="password">Password (Minimum 6 characters)</label>
-                <input type="password" id="password" placeholder="••••••••" minlength="6" required autocomplete="new-password">
-            </div>
-            <div class="form-group">
-                <label for="confirmPassword">Confirm Password</label>
-                <input type="password" id="confirmPassword" placeholder="••••••••" minlength="6" required autocomplete="new-password">
-            </div>
-            <button type="submit" class="btn-auth" id="submitBtn">Create Account</button>
-        </form>
 
-        <div class="auth-footer">
-            Already have an account? <a href="index.html">Sign In</a>
+            <div class="showcase-footer-stats">
+                <div class="showcase-stat-item">
+                    <div class="label">Live Readout</div>
+                    <div class="val" id="statLiveVal">24.6 °C</div>
+                </div>
+                <div class="showcase-stat-item">
+                    <div class="label">Sampling Rate</div>
+                    <div class="val">100 ms</div>
+                </div>
+                <div class="showcase-stat-item">
+                    <div class="label">Feed Status</div>
+                    <div class="val" style="color:var(--accent-green)">Active</div>
+                </div>
+            </div>
         </div>
+
     </div>
 </div>
 
@@ -76,6 +116,162 @@
             btn.textContent = 'Create Account';
         }
     }
+
+    // ===== Interactive Showcase Wave Chart =====
+    let currentMetric = 'temp';
+    let showcaseChart = null;
+
+    const metricConfigs = {
+        temp: {
+            label: 'Temperature (°C)',
+            base: 24,
+            amp: 3.5,
+            color: '#38bdf8',
+            unit: '°C'
+        },
+        vib: {
+            label: 'Vibration Amplitude (mm/s)',
+            base: 1.8,
+            amp: 0.9,
+            color: '#f59e0b',
+            unit: 'mm/s'
+        },
+        press: {
+            label: 'Offshore Pressure (bar)',
+            base: 101.4,
+            amp: 4.2,
+            color: '#34d399',
+            unit: 'bar'
+        }
+    };
+
+    function generatePoints(metricKey) {
+        const cfg = metricConfigs[metricKey];
+        const points = [];
+        const labels = [];
+        const now = Date.now();
+        for (let i = 24; i >= 0; i--) {
+            const time = new Date(now - i * 3600000);
+            labels.push(time.getHours().toString().padStart(2, '0') + ':00');
+            const wave = Math.sin((24 - i) / 3) * cfg.amp;
+            const noise = (Math.random() - 0.5) * (cfg.amp * 0.4);
+            points.push(+(cfg.base + wave + noise).toFixed(2));
+        }
+        return { labels, points };
+    }
+
+    function initShowcaseChart() {
+        const ctx = document.getElementById('showcaseChart').getContext('2d');
+        const cfg = metricConfigs[currentMetric];
+        const data = generatePoints(currentMetric);
+
+        const gradient = ctx.createLinearGradient(0, 0, 0, 240);
+        gradient.addColorStop(0, cfg.color + '44');
+        gradient.addColorStop(1, cfg.color + '00');
+
+        showcaseChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: data.labels,
+                datasets: [{
+                    label: cfg.label,
+                    data: data.points,
+                    borderColor: cfg.color,
+                    backgroundColor: gradient,
+                    fill: true,
+                    borderWidth: 2.5,
+                    tension: 0.35,
+                    pointRadius: 3,
+                    pointBackgroundColor: cfg.color,
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 1.5,
+                    pointHoverRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: { duration: 500 },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(10, 18, 34, 0.95)',
+                        titleColor: '#cbd5e1',
+                        bodyColor: '#ffffff',
+                        borderColor: 'rgba(255, 255, 255, 0.15)',
+                        borderWidth: 1,
+                        padding: 10,
+                        callbacks: {
+                            label: function(ctx) {
+                                return ` ${ctx.parsed.y} ${cfg.unit}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: { color: '#64748b', font: { family: 'JetBrains Mono', size: 10 }, maxTicksLimit: 7 },
+                        grid: { display: false }
+                    },
+                    y: {
+                        ticks: { color: '#64748b', font: { family: 'JetBrains Mono', size: 10 } },
+                        grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                    }
+                }
+            }
+        });
+
+        document.getElementById('statLiveVal').textContent = `${data.points[data.points.length - 1]} ${cfg.unit}`;
+
+        // Live stream simulation
+        if (!window.showcaseInterval) {
+            window.showcaseInterval = setInterval(() => {
+                if (!showcaseChart) return;
+                const activeCfg = metricConfigs[currentMetric];
+                const wave = Math.sin(Date.now() / 2000) * activeCfg.amp;
+                const noise = (Math.random() - 0.5) * (activeCfg.amp * 0.35);
+                const newVal = +(activeCfg.base + wave + noise).toFixed(2);
+
+                showcaseChart.data.datasets[0].data.shift();
+                showcaseChart.data.datasets[0].data.push(newVal);
+                showcaseChart.update('none');
+
+                const liveEl = document.getElementById('statLiveVal');
+                if (liveEl) liveEl.textContent = `${newVal} ${activeCfg.unit}`;
+            }, 1800);
+        }
+    }
+
+    function switchMetric(key) {
+        currentMetric = key;
+        document.querySelectorAll('.showcase-tab').forEach(t => t.classList.remove('active'));
+        const activeTab = Array.from(document.querySelectorAll('.showcase-tab')).find(t => 
+            t.getAttribute('onclick').includes(key)
+        );
+        if (activeTab) activeTab.classList.add('active');
+
+        const cfg = metricConfigs[key];
+        const data = generatePoints(key);
+
+        const ctx = document.getElementById('showcaseChart').getContext('2d');
+        const gradient = ctx.createLinearGradient(0, 0, 0, 240);
+        gradient.addColorStop(0, cfg.color + '44');
+        gradient.addColorStop(1, cfg.color + '00');
+
+        showcaseChart.data.labels = data.labels;
+        showcaseChart.data.datasets[0].label = cfg.label;
+        showcaseChart.data.datasets[0].data = data.points;
+        showcaseChart.data.datasets[0].borderColor = cfg.color;
+        showcaseChart.data.datasets[0].pointBackgroundColor = cfg.color;
+        showcaseChart.data.datasets[0].backgroundColor = gradient;
+        showcaseChart.update();
+
+        document.getElementById('statLiveVal').textContent = `${data.points[data.points.length - 1]} ${cfg.unit}`;
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        initShowcaseChart();
+    });
 </script>
 </body>
 </html>
