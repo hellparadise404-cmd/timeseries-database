@@ -13,6 +13,7 @@ const TS_REGEX = /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2})?$/;
 // ===== Init =====
 document.addEventListener('DOMContentLoaded', async () => {
     state.currentUser = await requireAuth();
+    if (!state.currentUser) return;
     document.getElementById('userEmail').textContent = state.currentUser.email;
     setupDropzone();
     loadHistory();
@@ -21,13 +22,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 // ===== Section Navigation =====
 function showSection(name) {
     ['upload', 'results', 'history'].forEach(s => {
-        document.getElementById('section-' + s).classList.toggle('hidden', s !== name);
+        const el = document.getElementById('section-' + s);
+        if (el) el.classList.toggle('hidden', s !== name);
     });
     document.querySelectorAll('.sidebar nav a').forEach(a => {
         a.classList.toggle('active', a.getAttribute('href') === '#' + name);
     });
     const titles = { upload: 'Upload CSV', results: 'Results & Visualization', history: 'Upload History' };
-    document.getElementById('pageTitle').textContent = titles[name] || '';
+    const pageTitle = document.getElementById('pageTitle');
+    if (pageTitle) pageTitle.textContent = titles[name] || '';
     if (name === 'history') loadHistory();
 }
 
@@ -310,7 +313,7 @@ async function saveToSupabase() {
     const records = state.records;
     const first = records[0], last = records[records.length - 1];
 
-    const { error } = await supabase.from('datasets').insert({
+    const { error } = await window.supabaseClient.from('datasets').insert({
         user_id: state.currentUser.id,
         file_name: state.staged.fileName,
         metric_name: metric,
@@ -331,13 +334,16 @@ async function saveToSupabase() {
 
 // ===== Supabase: Load History =====
 async function loadHistory() {
-    const { data, error } = await supabase
+    const tbody = document.getElementById('historyBody');
+    const countEl = document.getElementById('historyCount');
+    if (!tbody) return;
+
+    const { data, error } = await window.supabaseClient
         .from('datasets')
         .select('*')
         .order('created_at', { ascending: false });
 
-    const tbody = document.getElementById('historyBody');
-    document.getElementById('historyCount').textContent = (data ? data.length : 0) + ' dataset(s)';
+    if (countEl) countEl.textContent = (data ? data.length : 0) + ' dataset(s)';
 
     if (error || !data || !data.length) {
         tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:40px;">No datasets yet. Upload your first CSV!</td></tr>';
@@ -360,7 +366,7 @@ async function loadHistory() {
 
 // ===== Supabase: View Dataset =====
 async function viewDataset(id) {
-    const { data, error } = await supabase.from('datasets').select('*').eq('id', id).single();
+    const { data, error } = await window.supabaseClient.from('datasets').select('*').eq('id', id).single();
     if (error || !data) return showToast('Could not load dataset.');
 
     // Reconstruct records from stored raw_data
@@ -380,7 +386,7 @@ async function viewDataset(id) {
 // ===== Supabase: Delete Dataset =====
 async function deleteDataset(id) {
     if (!confirm('Delete this dataset permanently?')) return;
-    const { error } = await supabase.from('datasets').delete().eq('id', id);
+    const { error } = await window.supabaseClient.from('datasets').delete().eq('id', id);
     if (error) return showToast('Delete failed.');
     showToast('Deleted.');
     loadHistory();
@@ -425,6 +431,7 @@ function formatDate(d) {
 let toastTimer;
 function showToast(msg) {
     const t = document.getElementById('toast');
+    if (!t) return;
     t.textContent = msg;
     t.style.display = 'block';
     clearTimeout(toastTimer);
