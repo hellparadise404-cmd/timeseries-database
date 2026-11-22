@@ -257,6 +257,38 @@ body.auth-page::before {
     transition: all 0.2s ease;
 }
 
+.password-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.password-wrapper input {
+    padding-right: 44px !important;
+}
+
+.btn-toggle-pw {
+    position: absolute;
+    right: 8px;
+    background: transparent;
+    border: none;
+    padding: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    outline: none;
+}
+
+.btn-toggle-pw:hover {
+    color: var(--accent);
+    background: rgba(255, 255, 255, 0.1);
+}
+
 /* Prevent pale yellow browser autofill */
 input:-webkit-autofill,
 input:-webkit-autofill:hover, 
