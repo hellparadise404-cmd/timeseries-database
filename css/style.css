@@ -31,7 +31,7 @@
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     color: var(--text-body);
-    background: #080f1c url('background.png') no-repeat center center fixed;
+    background: #080f1c url('background.png?v=3.0') no-repeat center center fixed;
     background-size: cover;
     min-height: 100vh;
     line-height: 1.5;
